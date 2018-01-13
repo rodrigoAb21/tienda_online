@@ -2,8 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\DetalleV;
+use App\Producto;
+use App\Venta;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\URL;
 
@@ -13,6 +20,7 @@ use PayPal\Api\Item;
 use PayPal\Api\ItemList;
 use PayPal\Api\Payer;
 use PayPal\Api\Payment;
+use PayPal\Api\PaymentExecution;
 use PayPal\Api\RedirectUrls;
 use PayPal\Api\Transaction;
 use PayPal\Auth\OAuthTokenCredential;
@@ -111,10 +119,105 @@ class PaypalController extends Controller
 
         }
 
-        return redirect() -> to('/carrito') -> with('error', 'Ups!, Error desconocido.');
+        return redirect() -> to('/carrito') -> with('message', 'Ups!, Error desconocido.');
 
 
     }
+
+    public function getPaymentStatus(){
+        // Get the payment ID before session clear
+        $payment_id = Session::get('paypal_payment_id');
+
+        // Clear the session payment ID
+
+        $payerId = Input::get('PayerID');
+        $token = Input::get('token');
+
+        if (empty($payerId) || empty($token)){
+            return redirect('/') -> with('message', 'Hubo un problema al intentar pagar.');
+        }
+
+        $payment = Payment::get($payment_id, $this -> _api_context);
+
+        $execution = new PaymentExecution();
+        $execution -> setPayerId(Input::get('PayerID'));
+
+        $result = $payment -> execute($execution, $this -> _api_context);
+
+        if ($result -> getState() == 'approved'){
+
+            /* Como ya se aprobo el pago, se pasa a guardar en la DB la compra */
+            try {
+                DB::beginTransaction();
+                $carrito = Session::get('carrito');
+                $datos = Session::get('datos');
+
+                $ventas = new Venta();
+                $ventas -> nit = $datos -> nit;
+                $ventas -> nombre = $datos -> nombre;
+                $ventas -> precioTotal = $datos -> total;
+                $ventas -> idCliente = Auth::user() -> idCliente;
+                $ventas -> idEmpleado = 1;
+                $ventas -> estado = 'Activa';
+                $my_time = Carbon::now('America/La_Paz');
+                $ventas -> fecha = $my_time -> toDateTimeString();
+                $ventas -> save();
+
+
+
+                while ($cont < count($idProd)) {
+                    $detalle = new DetalleV();
+                    $detalle -> idVenta = $ventas -> id;
+                    $detalle -> idProducto = $idProd[$cont];
+                    $detalle -> cantidad = $cant[$cont];
+                    $detalle -> subtotal = $subTotal[$cont];
+                    if ($detalle -> save()){
+                        $producto = Producto::findOrFail($detalle -> idProducto);
+                        $producto -> stock = $producto -> stock - $detalle -> cantidad;
+                        $producto -> update();
+                    }
+                    $cont = $cont + 1;
+                }
+
+                DB::commit();
+
+                return redirect('/') -> with('message', 'Compra realizada de forma correcta.');
+
+            } catch (Exception $e) {
+
+                DB::rollback();
+
+            }
+
+        }
+
+        return redirect('/') -> with('message', 'La compra fue cancelada.');
+
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

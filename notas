@@ -1,0 +1,19 @@
+/* COSAS POR HACER */
+1. Añadir variable de sesion para guardar los $datos de la factura de la venta.
+2. Añadir una vista para ver como quedaria junto con la factura.
+3. Acomodar las rutas para que concuerde con el PaypalController.
+4. Al vender eliminar variables de session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
