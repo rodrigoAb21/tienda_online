@@ -50,6 +50,11 @@ Route::get('/carrito/destroy','CarritoController@destroy');
 Route::get('/carrito/delete/{id}','CarritoController@delete');
 Route::patch('/carrito/update/{id}','CarritoController@update');
 
+/* --------------------------------Detalle de Factura -------------------------------- */
+Route::get('/detalleFactura', 'DetalleController@mostrarDetalle');
+
+
+
 
 /* ----------------------------------- PAYPAL ----------------------------------------- */
 

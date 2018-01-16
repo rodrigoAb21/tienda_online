@@ -59,7 +59,7 @@
         </div>
         <p align="middle">
             <a href="{{url('productos')}}" class="btn btn-success">Seguir Comprando</a>
-            <a href="{{url('')}}" class="btn btn-success">Realizar Pago</a>
+            <a href="{{url('/detalleFactura')}}" class="btn btn-success">Continuar</a>
         </p>
     </div>
 @endsection
